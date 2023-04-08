@@ -1,222 +1,311 @@
 package application;
-import java.util.Scanner;
-public class FourInARow {
 
-	// Define constants
+import java.util.function.BiFunction;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.GridPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
+
+public class FourInARow extends Application
+{
     private static final int ROWS = 6;
-    private static final int COLS = 7;
-    private static final int MAX_MOVES = ROWS * COLS;
-    private static final char PLAYER1_TOKEN = 'X';
-    private static final char PLAYER2_TOKEN = 'O';
-    private static final char EMPTY_SPACE = ' ';
+    private static final int COLUMNS = 7;
+    private static final double CELL_SIZE = 100;
 
-    // Initializes the board with empty spaces
-    private static void initializeBoard(char[][] board)
-    {
-        for(int i = 0; i < ROWS; i++)
-            for(int j = 0; j < COLS; j++)
-                board[i][j] = EMPTY_SPACE;
-    }
+    private Circle[][] board;
+    private boolean player1Turn;
 
-    // Prints the current state of the board
-    private static void printBoard(char[][] board)
-    {
-        System.out.println(" 1 2 3 4 5 6 7");
-        
-        for(int i = 0; i < ROWS; i++)
-        {
-            for(int j = 0; j < COLS; j++)
-                System.out.print("|" + board[i][j]);
-                
-            System.out.println("|");
-        }
-        
-        System.out.println("---------------");
-    }
-
-    // Gets the player's move and validates it
-    private static int getPlayerMove(Scanner scanner)
-    {
-        int col;
-        
-        while(true)
-        {
-            System.out.print("Enter your move(1-7): ");
-            col = scanner.nextInt() - 1;
-            
-            if(col >= 0 && col < COLS)
-                return col;
-            
-            System.out.println("Invalid move. Please try again.");
-        }
-    }
-    
-    // Makes a move on the board
-    private static void makeMove(char[][] board, int col, char token)
-    {
-        for(int i = ROWS - 1; i >= 0; i--)
-            if(board[i][col] == EMPTY_SPACE)
-            {
-                board[i][col] = token;
-                return;
-            }
-    }
-
-    // Gets the AI's move
-    private static int getAIMove(char[][] board)
-    {
-        // Choose a random move for now
-        int col;
-        
-        do
-        {
-            col = (int)(Math.random() * COLS);
-        }while(board[0][col] != EMPTY_SPACE);
-        
-        return col;
-    }
-
-    // Checks if a player has won the game
-    private static boolean hasWon(char[][] board, int col, char token)
-    {
-        // Check for a horizontal win
-        for(int i = 0; i < ROWS; i++)
-        {
-            int count = 0;
-            
-            for(int j = 0; j < COLS; j++)
-                if(board[i][j] == token)
-                {
-                    count++;
-                    
-                    if(count == 4)
-                        return true;
-                }
-                else
-                    count = 0;
-        }
-
-        // Check for a vertical win
-        for(int j = 0; j < COLS; j++)
-        {
-            int count = 0;
-            
-            for(int i = 0; i < ROWS; i++)
-            {
-                if(board[i][j] == token)
-                {
-                    count++;
-                    
-                    if(count == 4)
-                        return true;
-                }
-                else
-                    count = 0;
-            }
-        }
-
-        // Check for a diagonal win(top-left to bottom-right)
-        for(int i = 0; i <= ROWS - 4; i++)
-            for(int j = 0; j <= COLS - 4; j++)
-            {
-                int count = 0;
-                
-                for(int k = 0; k < 4; k++)
-                    if(board[i+k][j+k] == token)
-                    {
-                        count++;
-                        
-                        if(count == 4)
-                            return true;
-                    }
-                    else
-                        break;
-            }
-
-        // Check for a diagonal win(top-right to bottom-left)
-        for(int i = 0; i <= ROWS - 4; i++)
-            for(int j = COLS - 1; j >= 3; j--)
-            {
-                int count = 0;
-                
-                for(int k = 0; k < 4; k++)
-                    if(board[i+k][j-k] == token)
-                    {
-                        count++;
-                        
-                        if(count == 4)
-                            return true;
-                    }
-                    else
-                        break;
-            }
-
-        // No winner yet
-        return false;
-    }
-    
     public static void main(String[] args)
     {
-        // Create a new Connect 4 board
-        char[][] board = new char[ROWS][COLS];
-        initializeBoard(board);
+        launch(args);
+    }
 
-        // Create a new scanner to read user input
-        Scanner k = new Scanner(System.in);
+    @Override
+    public void start(Stage primaryStage)
+    {
+        GridPane grid = new GridPane();
+        grid.setBackground(new Background(new BackgroundFill(Color.BLACK, null, null)));
 
-        // Choose who goes first
-        boolean player1Turn = true;
-        System.out.println("Welcome to Connect 4!");
-        System.out.print("Would you like to play against a person or a computer?(1 for pvp, 2 for computer)");
-        int pvp = k.nextInt();
-   
-        System.out.print("Who goes first?(1 for you, 2 for the AI): ");
-        int firstPlayer = k.nextInt();
+        board = new Circle[ROWS][COLUMNS];
         
-        if(firstPlayer == 2)
-            player1Turn = false;
+        for (int row = 0; row < ROWS; row++)
+            for (int col = 0; col < COLUMNS; col++)
+            {
+                Circle circle = new Circle(CELL_SIZE / 2, Color.WHITE);
+                board[row][col] = circle;
+                grid.add(circle, col, row);
+            }
 
-        // Start the game loop
-        int moveCount = 0;
-        boolean gameOver = false;
-        
-        while(!gameOver && moveCount < MAX_MOVES)
+        player1Turn = true;
+
+        grid.setOnMouseClicked(e ->
         {
-            // Print the current state of the board
-            printBoard(board);
+            if (player1Turn)
+            {
+                int col = (int) (e.getX() / CELL_SIZE);
 
-            // Get the current player's move
-            int col;
+                if (col >= 0 && col < COLUMNS)
+                    for (int row = ROWS - 1; row >= 0; row--)
+                        if (board[row][col].getFill() == Color.WHITE)
+                        {
+                            board[row][col].setFill(Color.YELLOW);
+                            
+                            if (isWin(row, col))
+                            {
+                                showWinner("Player 1");
+                                return;
+                            }
+
+                            player1Turn = !player1Turn;
+                            break;
+                        }
+            }
+
+            if (!player1Turn)
+            {
+                int aiCol = aiMove();
+                
+                if (aiCol != -1)
+                    for (int aiRow = ROWS - 1; aiRow >= 0; aiRow--)
+                        if (board[aiRow][aiCol].getFill() == Color.WHITE)
+                        {
+                            board[aiRow][aiCol].setFill(Color.RED);
+                            
+                            if (isWin(aiRow, aiCol)) {
+                                showWinner("AI Player");
+                                return;
+                            }
+                            
+                            player1Turn = !player1Turn;
+                            break;
+                        }
+            }
+        });
+
+        Scene scene = new Scene(grid, COLUMNS * CELL_SIZE, ROWS * CELL_SIZE);
+        primaryStage.setTitle("Connect 4");
+        primaryStage.setScene(scene);
+        primaryStage.setResizable(false);
+        primaryStage.show();
+    }
+    
+    private int minimax(int depth, boolean isMaximizingPlayer)
+    {
+        // Evaluate the board and return the score if the depth is reached or the game is over
+        if (depth == 0 || isGameOver())
+            return evaluateBoard();
+
+        int bestValue;
+        
+        if (isMaximizingPlayer)
+        {
+            bestValue = Integer.MIN_VALUE;
             
-            if(player1Turn)
-            {
-                col = getPlayerMove(k);
-                makeMove(board, col, PLAYER1_TOKEN);
-            } 
-            else
-            {
-                col = getAIMove(board);
-                makeMove(board, col, PLAYER2_TOKEN);
-            }
-
-            // Check if the game is over
-            if(hasWon(board, col, player1Turn ? PLAYER1_TOKEN : PLAYER2_TOKEN))
-            {
-                printBoard(board);
-                System.out.println("Player " +(player1Turn ? "1" : "2") + " wins!");
-                gameOver = true;
-            }
-            else if(moveCount == MAX_MOVES - 1)
-            {
-                printBoard(board);
-                System.out.println("It's a draw!");
-                gameOver = true;
-            }
-
-            // Switch to the other player's turn
-            player1Turn = !player1Turn;
-            moveCount++;
+            for (int col = 0; col < COLUMNS; col++)
+                if (makeMove(col, Color.RED))
+                {
+                    int value = minimax(depth - 1, false);
+                    bestValue = Math.max(bestValue, value);
+                    undoMove(col);
+                }
         }
+        else
+        {
+            bestValue = Integer.MAX_VALUE;
+            
+            for (int col = 0; col < COLUMNS; col++)
+                if (makeMove(col, Color.YELLOW))
+                {
+                    int value = minimax(depth - 1, true);
+                    bestValue = Math.min(bestValue, value);
+                    undoMove(col);
+                }
+        }
+
+        return bestValue;
+    }
+
+    private boolean makeMove(int col, Color color)
+    {
+        for (int row = ROWS - 1; row >= 0; row--)
+            if (board[row][col].getFill() == Color.WHITE)
+            {
+                board[row][col].setFill(color);
+                return true;
+            }
+        
+        return false;
+    }
+
+    private void undoMove(int col)
+    {
+        for (int row = 0; row < ROWS; row++)
+            if (board[row][col].getFill() != Color.WHITE)
+            {
+                board[row][col].setFill(Color.WHITE);
+                break;
+            }
+    }
+
+    private boolean isGameOver()
+    {
+        for (int row = 0; row < ROWS; row++)
+            for (int col = 0; col < COLUMNS; col++)
+                if (board[row][col].getFill() != Color.WHITE && isWin(row, col))
+                    return true;
+                
+        return false;
+    }
+
+    private int evaluateBoard()
+    {
+        int score = 0;
+
+        // Helper function to count consecutive pieces in a given direction
+        BiFunction<Integer, Integer, Integer> countConsecutive = (dr, dc) ->
+        {
+            int consecutiveAI = 0;
+            int consecutiveHuman = 0;
+            int maxConsecutiveAI = 0;
+            int maxConsecutiveHuman = 0;
+
+            for (int row = 0; row < ROWS; row++)
+                for (int col = 0; col < COLUMNS; col++)
+                {
+                    Color current = (Color) board[row][col].getFill();
+                    
+                    if (current == Color.RED || current == Color.YELLOW)
+                    {
+                        int r = row, c = col;
+                        int count = 0;
+
+                        while (r >= 0 && r < ROWS && c >= 0 && c < COLUMNS && board[r][c].getFill() == current)
+                        {
+                            count++;
+                            r += dr;
+                            c += dc;
+                        }
+
+                        if (current == Color.RED)
+                        {
+                            consecutiveAI = Math.max(consecutiveAI, count);
+                            maxConsecutiveAI = Math.max(maxConsecutiveAI, consecutiveAI);
+                        }
+                        else
+                        {
+                            consecutiveHuman = Math.max(consecutiveHuman, count);
+                            maxConsecutiveHuman = Math.max(maxConsecutiveHuman, consecutiveHuman);
+                        }
+                    }
+                }
+
+            return 5 * (maxConsecutiveAI - maxConsecutiveHuman);
+        };
+
+        // Evaluate horizontal lines
+        score += countConsecutive.apply(0, 1);
+
+        // Evaluate vertical lines
+        score += countConsecutive.apply(1, 0);
+
+        // Evaluate diagonal lines (top-left to bottom-right)
+        score += countConsecutive.apply(1, 1);
+
+        // Evaluate diagonal lines (bottom-left to top-right)
+        score += countConsecutive.apply(-1, 1);
+
+        return score;
+    }
+
+    private int aiMove()
+    { 
+        int bestCol = -1;
+        int bestValue = Integer.MIN_VALUE;
+
+        for (int col = 0; col < COLUMNS; col++)
+            if (makeMove(col, Color.RED))
+            {
+                int value = minimax(3, false); // Change depth as desired
+                
+                if (value > bestValue)
+                {
+                    bestValue = value;
+                    bestCol = col;
+                }
+                
+                undoMove(col);
+            }
+
+        return bestCol;
+    }
+
+    private boolean isWin(int row, int col)
+    {
+        Color playerColor = (Color) board[row][col].getFill();
+
+        // Check horizontal
+        int count = 0;
+        for (int c = 0; c < COLUMNS; c++)
+        {
+            count = (board[row][c].getFill() == playerColor) ? count + 1 : 0;
+            
+            if (count >= 4)
+                return true;
+        }
+
+        // Check vertical
+        count = 0;
+        for (int r = 0; r < ROWS; r++)
+        {
+            count = (board[r][col].getFill() == playerColor) ? count + 1 : 0;
+            
+            if (count >= 4)
+                return true;
+        }
+        
+        // Check diagonal (top-left to bottom-right)
+        int startRow = Math.max(0, row - col);
+        int startCol = Math.max(0, col - row);
+        count = 0;
+        
+        for (int r = startRow, c = startCol; r < ROWS && c < COLUMNS; r++, c++)
+        {
+            count = (board[r][c].getFill() == playerColor) ? count + 1 : 0;
+            
+            if (count >= 4)
+                return true;
+        }
+
+        // Check diagonal (bottom-left to top-right)
+        startRow = Math.min(ROWS - 1, row + col);
+        startCol = Math.max(0, col - (ROWS - 1 - row));
+        count = 0;
+        
+        for (int r = startRow, c = startCol; r >= 0 && c < COLUMNS; r--, c++)
+        {
+            count = (board[r][c].getFill() == playerColor) ? count + 1 : 0;
+            
+            if (count >= 4)
+                return true;
+        }
+
+        return false;
+    }
+
+
+    private void showWinner(String winner)
+    {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Connect 4");
+        alert.setHeaderText("Game Over");
+        alert.setContentText(winner + " wins!");
+        alert.showAndWait();
+        javafx.application.Platform.exit();
     }
 }
-
